@@ -104,10 +104,27 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			}
 		}
 	}
+
+	deferstmt := func(x *ast.DeferStmt) {
+		if isReturnError(pass, x.Call) {
+			pass.Reportf(x.Pos(), "defer with unchecked error")
+		}
+	}
+
+	gostmt := func(x *ast.GoStmt) {
+		if isReturnError(pass, x.Call) {
+			pass.Reportf(x.Pos(), "go with unchecked error")
+		}
+	}
+
 	for _, file := range pass.Files {
 		// функцией ast.Inspect проходим по всем узлам AST
 		ast.Inspect(file, func(node ast.Node) bool {
 			switch x := node.(type) {
+			case *ast.GoStmt:
+				gostmt(x)
+			case *ast.DeferStmt:
+				deferstmt(x)
 			case *ast.ExprStmt: // выражение
 				expr(x)
 			case *ast.AssignStmt: // опрератор присваивания
